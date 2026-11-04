@@ -1,0 +1,4 @@
+$ ssh qnxvm 'ls -l /dev/qnxray'; qnxray --target qnxvm snapshot | python3 -c 'import json,sys;d=json.load(sys.stdin);print(d["source"],len(d["processes"]),"processes",sum(len(p["threads"]) for p in d["processes"]),"threads")'
+nr--r--r--  1 root root 0 2026-11-04 17:52 /dev/qnxray
+resmgr 29 processes 158 threads
+[exit 0, 1.1 s]

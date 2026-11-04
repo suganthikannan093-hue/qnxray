@@ -1,0 +1,3 @@
+$ ssh qnxvm 'sudo -n /tmp/inversion 3 --inherit | grep reply'
+client(prio 30): reply after 0.50s (expected 0.5s) -> OK, server inherited prio 30
+[exit 0, 1.6 s]

@@ -15,7 +15,10 @@ export function cliDir(ctx: vscode.ExtensionContext) {
   return fs.existsSync(path.join(bundled, 'qnxray')) ? bundled : path.join(ctx.extensionPath, '..', 'cli');
 }
 function cliEnv(ctx: vscode.ExtensionContext) { return { ...process.env, PYTHONPATH: cliDir(ctx) }; }
-function base(): string[] { return ['-m', 'qnxray', '--target', cfg().get<string>('target', 'mock')]; }
+function base(): string[] {
+  const src = cfg().get<string>('source', '');
+  return ['-m', 'qnxray', '--target', cfg().get<string>('target', 'mock'), ...(src ? ['--source', src] : [])];
+}
 export function watch(ctx: vscode.ExtensionContext, onSnap: (s: Snapshot) => void, onErr: (e: string) => void): ChildProcess {
   const p = spawn(cfg().get<string>('python', 'python3'), [...base(), 'watch', '--interval', String(cfg().get<number>('interval', 1))], { env: cliEnv(ctx) });
   let buf = '';

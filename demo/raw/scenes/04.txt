@@ -1,0 +1,19 @@
+$ qnxray --target qnxvm inversions
+[
+  {
+    "waiter": "/tmp/inversion[25391127]/1",
+    "prio": 30,
+    "state": "REPLY",
+    "owner": "/tmp/inversion",
+    "owner_pid": 25387024,
+    "owner_max_prio": 10,
+    "owner_states": [
+      "READY"
+    ],
+    "preempted_by": [
+      "/tmp/inversion[25391123]/1@20"
+    ],
+    "severity": "high"
+  }
+]
+[exit 0, 0.7 s]

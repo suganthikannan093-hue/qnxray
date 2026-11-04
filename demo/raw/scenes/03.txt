@@ -1,0 +1,3 @@
+$ ssh qnxvm 'pidin | grep -E pid
+bash: -c: line 1: unexpected EOF while looking for matching `''
+[exit 2, 0.0 s]

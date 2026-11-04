@@ -52,6 +52,17 @@
         "qnxray.interval": {
           "type": "number",
           "default": 1
+        },
+        "qnxray.source": {
+          "type": "string",
+          "enum": [
+            "",
+            "pidin",
+            "agent",
+            "resmgr"
+          ],
+          "default": "",
+          "description": "Snapshot source on an SSH target: pidin (default), agent (/tmp/qnxray-agent) or resmgr (/dev/qnxray resource manager)."
         }
       }
     }
