@@ -6,3 +6,6 @@ __pycache__/
 build/
 *.core
 .qnxray/
+build/
+__pycache__/
+*.pyc

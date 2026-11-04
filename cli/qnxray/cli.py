@@ -24,7 +24,10 @@ def main(argv=None):
     sp = p.add_subparsers(dest="cmd", required=True)
     sp.add_parser("snapshot"); w = sp.add_parser("watch"); w.add_argument("--interval", type=float, default=1.0)
     w.add_argument("--count", type=int, default=0)
-    sp.add_parser("inversions"); sp.add_parser("explain-crash")
+    sp.add_parser("inversions")
+    ec = sp.add_parser("explain-crash"); ec.add_argument("binary", nargs="?", default=None,
+        help="local QNX binary to deploy+run (or remote path with --remote)")
+    ec.add_argument("--remote", action="store_true"); ec.add_argument("--json", action="store_true")
     b = sp.add_parser("build"); b.add_argument("source")
     a = p.parse_args(argv)
     if a.cmd == "build":
@@ -39,8 +42,17 @@ def main(argv=None):
     elif a.cmd == "inversions":
         print(json.dumps(priority_inversions(t.snapshot()), indent=2))
     elif a.cmd == "explain-crash":
-        rep = t.crash_report() if hasattr(t, "crash_report") else {}
-        print(explain(rep))
+        if a.binary and hasattr(t, "deploy"):
+            rb = a.binary if a.remote else t.deploy(a.binary)
+            rep = t.run_and_capture(rb)
+        else:
+            rep = t.crash_report() if hasattr(t, "crash_report") else {}
+        if a.json:
+            print(json.dumps(rep, indent=2))
+        if rep.get("crashed") is False:
+            print(f"{rep['binary']} exited normally (code {rep['exit_code']}).")
+        else:
+            print(explain(rep))
 
 if __name__ == "__main__":
     main()
