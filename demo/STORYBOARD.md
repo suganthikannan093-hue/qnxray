@@ -1,9 +1,9 @@
 # Demo video storyboard / script
 
-Output: `demo/qnxray_demo.mp4` (1920x1080, 25 fps, H.264 + AAC, ~2:36). Rebuild:
+Output: `demo/qnxray_demo.mp4` (1920x1080, 25 fps, H.264 + AAC, ~2:34). Rebuild:
 `demo/capture.sh` (real live output from the QNX 8.0 QEMU target -> `demo/raw/scenes/`), record `demo/raw/vscode.mp4`
 (`QNXRAY_DEMO_HOLD=10 QNXRAY_DEMO_USERDIR=/tmp/vsdemo QNXRAY_SOURCE=resmgr QNXRAY_TARGET=qnxvm QNXRAY_EXPECT_INVERSION=1 node extension/out/test/runTest.js` under `ffmpeg -f x11grab`),
-then `python3 demo/render.py`. Narration: piper TTS, LJSpeech voice (public domain). No music, no logos.
+then `python3 demo/render.py`. Narration: **Kokoro-82M** neural TTS (hexgrad/Kokoro-82M, **Apache-2.0** weights; ONNX build via kokoro-onnx, MIT), voice `af_heart`, en-US, speed 1.0; loudness normalized to -16 LUFS (ffmpeg loudnorm). Sample: `demo/voice_sample.wav`. v1 used piper/LJSpeech (public domain). No music, no logos.
 
 | # | Type | Seconds | On-screen caption | Narration |
 |---|---|---|---|---|

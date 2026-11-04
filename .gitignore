@@ -17,3 +17,4 @@ extension/node_modules/
 extension/.vscode-test/
 demo/raw/build/
 demo/raw/*.mp4
+demo/qnxray_demo_v1.mp4

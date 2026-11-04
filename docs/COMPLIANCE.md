@@ -11,10 +11,10 @@ Legend: **Met** = satisfied in this repo now. **Gap** = still to do (owner liste
 | 5 | Public repo on GitHub/GitLab/Bitbucket with all source + instructions | **Gap** | Repo exists but is **private** by owner decision. Make public at submission time **with owner approval** |
 | 6 | OSI licence file, detectable in the repo "About" section | Met / **Gap** | `LICENSE` = MIT (GitHub detects it). Visible in About only once the repo is public (#5) |
 | 7 | Text description of features/functionality | **Gap** (draft ready) | `docs/SUBMISSION.md` draft; owner pastes into Devpost |
-| 8 | Video < 3 minutes | Met | `demo/qnxray_demo.mp4` 2:36, 1920x1080 H.264/AAC MP4 |
+| 8 | Video < 3 minutes | Met | `demo/qnxray_demo.mp4` 2:34, 1920x1080 H.264/AAC MP4 |
 | 9 | Video shows project functioning on the device it was built for | Met | All terminal scenes are real captured output from the live QNX 8.0 QEMU target (`demo/capture.sh` -> `demo/raw/scenes/*.txt`); VS Code scene is a real screen recording against the live target |
 | 10 | Video uploaded publicly to YouTube, link on form | **Gap** | Owner uploads (not uploaded by the bot, per instruction) |
-| 11 | Video: no third-party trademarks / copyrighted music or material without permission | Met (note) | No music; narration = piper TTS with LJSpeech voice (public domain); no logos. Product names (QNX, VS Code) appear only as text naming what the tool targets (nominative use); VS Code UI is visible in the dashboard scene |
+| 11 | Video: no third-party trademarks / copyrighted music or material without permission | Met (note) | No music; narration = Kokoro-82M TTS voice af_heart (Apache-2.0); no logos. Product names (QNX, VS Code) appear only as text naming what the tool targets (nominative use); VS Code UI is visible in the dashboard scene |
 | 12 | English | Met | All docs, UI, narration in English |
 | 13 | New work within 2 Nov - 15 Dec 2026 | Met | First commit 2026-11-04 (git history); codelab written 2026-11-04 |
 | 14 | Original work; OSS deps only under their licences; enhances them | Met | Own code; deps: Python stdlib, VS Code extension API / `@vscode/test-electron` (MIT), TypeScript (Apache-2.0). `.vscode-test/` and `node_modules/` gitignored; QNX SDP not redistributed (only used under the non-commercial licence) |

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Render demo/qnxray_demo.mp4 from REAL captured output (demo/raw/scenes/*.txt, from capture.sh)
-and the real VS Code screen recording (demo/raw/vscode.mp4). Narration: piper TTS (LJSpeech voice, public domain).
+and the real VS Code screen recording (demo/raw/vscode.mp4). Narration: Kokoro-82M TTS, voice af_heart (Apache-2.0).
 No music. Usage: python3 demo/render.py"""
 import os, re, subprocess, wave, json
 from PIL import Image, ImageDraw, ImageFont
@@ -42,10 +42,15 @@ SCENES = [
   "Built for QNX SDP 8.0", "Q N X ray. See the invisible real-time bugs, before they ship."),
 ]
 
+_K = None
 def tts(i, text):
-    out = f"{B}/n{i:02}.wav"
-    subprocess.run(["python3", "-m", "piper", "-m", VOICE, "-f", out], input=text.encode(), check=True, capture_output=True)
-    with wave.open(out) as w: return out, w.getnframes() / w.getframerate()
+    """Kokoro-82M (Apache-2.0), voice af_heart. Model files: github.com/thewh1teagle/kokoro-onnx releases (KOKORO_DIR)."""
+    global _K
+    from kokoro_onnx import Kokoro; import soundfile as sf
+    kd = os.environ.get("KOKORO_DIR", "/home/box/kokoro")
+    _K = _K or Kokoro(f"{kd}/kokoro-v1.0.onnx", f"{kd}/voices-v1.0.bin")
+    a, sr = _K.create(text, voice=os.environ.get("KOKORO_VOICE", "af_heart"), speed=1.0, lang="en-us")
+    out = f"{B}/n{i:02}.wav"; sf.write(out, a, sr); return out, len(a) / sr
 
 def caption(img, text, n):
     d = ImageDraw.Draw(img); d.rectangle([0, H - 110, W, H], fill=(0, 0, 0))
@@ -123,5 +128,5 @@ for i, (kind, payload, cap, narr) in enumerate(SCENES):
                  else encode(i, frames, dur=dur, audio=wav))
     script.append((i + 1, kind, cap, narr, dur)); print(f"scene {i+1}: {dur:.1f}s {cap}")
 open(f"{B}/list.txt", "w").write("".join(f"file '{p}'\n" for p in parts))
-subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", f"{B}/list.txt", "-c", "copy", "-movflags", "+faststart", f"{D}/qnxray_demo.mp4"], check=True)
+subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", f"{B}/list.txt", "-c:v", "copy", "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-movflags", "+faststart", f"{D}/qnxray_demo.mp4"], check=True)
 print("total", sum(s[4] for s in script)); json.dump(script, open(f"{B}/timing.json", "w"), indent=1)
