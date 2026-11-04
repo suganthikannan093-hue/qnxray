@@ -11,11 +11,17 @@ qcc -Vgcc_ntox86_64 -g -o "$ROOT/build/crashy" "$ROOT/examples/crashy/main.c"
 scp -q "$ROOT/build/qnxray-agent" "$T:/tmp/"
 export PYTHONPATH="$ROOT/cli"
 q() { python3 -m qnxray --target "$T" "$@"; }
+qs() { python3 -m qnxray --target "$T" --source resmgr "$@"; }
 n=$(q snapshot | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["processes"]))')
 [ "$n" -gt 10 ] && echo "PASS pidin snapshot: $n processes" || { echo "FAIL pidin snapshot ($n)"; exit 1; }
 n=$(QNXRAY_AGENT=/tmp/qnxray-agent q snapshot | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["source"]=="agent";print(len(d["processes"]))')
 [ "$n" -gt 10 ] && echo "PASS agent snapshot: $n processes" || { echo "FAIL agent snapshot"; exit 1; }
 q inversions >/dev/null && echo "PASS inversions (idle)"
+qcc -Vgcc_ntox86_64 -g -Wall -DQNXRAY_NO_MAIN -o "$ROOT/build/qnxray-resmgr" "$ROOT/agent/qnxray-resmgr.c" "$ROOT/agent/qnxray-agent.c"
+ssh "$T" "sudo -n slay -f qnxray-resmgr; sudo -n rm -f /tmp/qnxray-resmgr" >/dev/null 2>&1 || true
+scp -q "$ROOT/build/qnxray-resmgr" "$T:/tmp/" && ssh "$T" "sudo -n /tmp/qnxray-resmgr" 2>/dev/null; sleep 1
+n=$(qs snapshot 2>/dev/null | python3 -c 'import json,sys;d=json.load(sys.stdin);assert d["source"]=="resmgr";print(len(d["processes"]))' || true)
+[ "${n:-0}" -gt 10 ] && echo "PASS /dev/qnxray resmgr snapshot: $n processes" || { echo "FAIL resmgr"; exit 1; }
 qcc -Vgcc_ntox86_64 -g -o "$ROOT/build/inversion" "$ROOT/examples/inversion/main.c"
 ssh "$T" "sudo -n slay -f inversion; sudo -n rm -f /tmp/inversion" >/dev/null 2>&1 || true
 scp -q "$ROOT/build/inversion" "$T:/tmp/"

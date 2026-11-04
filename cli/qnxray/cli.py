@@ -7,7 +7,7 @@ def get_target(a):
     if a.target == "mock":
         return MockTarget(seed=a.seed)
     from .target import SshTarget
-    return SshTarget(a.target)
+    return SshTarget(a.target, source=a.source)
 
 def sdp_env_check():
     if "QNX_TARGET" not in os.environ:
@@ -49,9 +49,12 @@ def cmd_ci(a, t):
             r = dict(t.crash_report(), crashed=True)
         if r.get("crashed"):
             r["explanation"] = explain(r); rep["crashes"].append(r)
-    for b in a.background or []:     # e.g. a workload that must not invert
-        rb = t.deploy(b) if hasattr(t, "deploy") else b
-        t._ssh(f"(sudo -n {rb} {a.seconds + 2} >/dev/null 2>&1 &)") if hasattr(t, "_ssh") else None
+    for b in a.background or []:     # "BIN [args...]": a workload that must not invert
+        import shlex
+        parts = shlex.split(b)
+        rb = t.deploy(parts[0]) if hasattr(t, "deploy") else parts[0]
+        extra = " ".join(shlex.quote(x) for x in parts[1:]) or str(a.seconds + 2)
+        t._ssh(f"(sudo -n {rb} {extra} >/dev/null 2>&1 &)") if hasattr(t, "_ssh") else None
     if a.background: time.sleep(1.5)
     seen = set()
     end = time.time() + a.seconds
@@ -75,6 +78,8 @@ def main(argv=None):
     p.add_argument("--target", default=os.environ.get("QNXRAY_TARGET", "mock"),
                    help="'mock', an ssh alias (e.g. qnxvm) or [user@]host[:port]")
     p.add_argument("--seed", type=int, default=None)
+    p.add_argument("--source", choices=["pidin", "agent", "resmgr"], default=None,
+                   help="snapshot source on an ssh target (env QNXRAY_SOURCE); resmgr reads /dev/qnxray")
     sp = p.add_subparsers(dest="cmd", required=True)
     sp.add_parser("snapshot"); w = sp.add_parser("watch"); w.add_argument("--interval", type=float, default=1.0)
     w.add_argument("--count", type=int, default=0)
@@ -89,7 +94,7 @@ def main(argv=None):
     ci = sp.add_parser("ci", help="exit non-zero on crash (1) / inversion (2); JSON report")
     ci.add_argument("--run", action="append", help="local binary to deploy+run; crash fails the gate")
     ci.add_argument("--args", default="")
-    ci.add_argument("--background", action="append", help="local binary started (as root) during the inversion scan")
+    ci.add_argument("--background", action="append", help="'local_binary [args]' started (as root) during the inversion scan; default arg = seconds+2")
     ci.add_argument("--seconds", type=float, default=3); ci.add_argument("--interval", type=float, default=0.5)
     ci.add_argument("--report", help="write JSON report here")
     b = sp.add_parser("build"); b.add_argument("source")

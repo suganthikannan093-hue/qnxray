@@ -9,13 +9,18 @@ from .pidin import parse
 from .model import Snapshot, Process, Thread
 
 class SshTarget:
-    def __init__(self, spec, sudo=None, agent=None):
+    def __init__(self, spec, sudo=None, agent=None, source=None):
         self.port = None
         if ":" in spec and not spec.startswith("["):
             spec, self.port = spec.rsplit(":", 1)
         self.dest = spec
         self.sudo = (os.environ.get("QNXRAY_SUDO", "1") == "1") if sudo is None else sudo
         self.agent = agent if agent is not None else os.environ.get("QNXRAY_AGENT")  # path on target
+        # source: pidin (default) | agent | resmgr (/dev/qnxray, path via QNXRAY_RESMGR)
+        self.source = source or os.environ.get("QNXRAY_SOURCE") or ("agent" if self.agent else "pidin")
+        self.resmgr_path = os.environ.get("QNXRAY_RESMGR", "/dev/qnxray")
+        if self.source == "agent" and not self.agent:
+            self.agent = "/tmp/qnxray-agent"
 
     def _base(self, tool):
         args = [tool, "-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
@@ -33,9 +38,13 @@ class SshTarget:
         return r
 
     def snapshot(self):
-        if self.agent:
-            d = json.loads(self._ssh(f"{shlex.quote(self.agent)} 1 1", root=True).stdout)
-            s = Snapshot(timestamp=d.get("timestamp", time.time()), source="agent")
+        if self.source in ("agent", "resmgr"):
+            if self.source == "resmgr":   # served by qnxray-resmgr running as root; no sudo needed
+                out = self._ssh(f"cat {shlex.quote(self.resmgr_path)}").stdout
+            else:
+                out = self._ssh(f"{shlex.quote(self.agent)} 1 1", root=True).stdout
+            d = json.loads(out)
+            s = Snapshot(timestamp=d.get("timestamp", time.time()), source=self.source)
             for p in d["processes"]:
                 s.processes.append(Process(pid=p["pid"], name=p["name"],
                                            threads=[Thread(**t) for t in p["threads"]]))
