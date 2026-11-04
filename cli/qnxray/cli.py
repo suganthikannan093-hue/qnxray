@@ -1,7 +1,7 @@
 import argparse, json, os, shutil, subprocess, sys, time
 from .mock import MockTarget
 from .analyze import priority_inversions
-from .explain import explain
+from .explain import explain, analyze, format_text, inversion_evidence, propose_fix
 
 def get_target(a):
     if a.target == "mock":
@@ -48,7 +48,7 @@ def cmd_ci(a, t):
         else:
             r = dict(t.crash_report(), crashed=True)
         if r.get("crashed"):
-            r["explanation"] = explain(r); rep["crashes"].append(r)
+            r["explanation"] = analyze(r); rep["crashes"].append(r)
     for b in a.background or []:     # "BIN [args...]": a workload that must not invert
         import shlex
         parts = shlex.split(b)
@@ -60,9 +60,19 @@ def cmd_ci(a, t):
     end = time.time() + a.seconds
     while True:
         rep["snapshots"] += 1
-        for i in priority_inversions(t.snapshot()):
+        snap = t.snapshot()
+        for i in priority_inversions(snap):
             key = (i["waiter"], i["owner_pid"])
-            if key not in seen: seen.add(key); i["explanation"] = explain(i); rep["inversions"].append(i)
+            if key not in seen:
+                seen.add(key); sd = snap.to_dict(); i["explanation"] = analyze(i, snapshot=sd); rep["inversions"].append(i)
+                if a.fix and "fix" not in rep:
+                    import difflib
+                    src = open(a.fix).read(); ev = inversion_evidence(i, sd); ev["source"] = {"file": a.fix}
+                    fx = propose_fix(ev, src); new = src
+                    for e in fx["edits"]: new = new.replace(e["find"], e["replace"], 1)
+                    diff = "".join(difflib.unified_diff(src.splitlines(True), new.splitlines(True), f"a/{a.fix}", f"b/{a.fix}"))
+                    rep["fix"] = dict(fx, patch=diff, patch_file=a.fix_out)
+                    open(a.fix_out, "w").write(diff)
         if time.time() >= end: break
         time.sleep(a.interval)
     code = (1 if rep["crashes"] else 0) | (2 if rep["inversions"] else 0)
@@ -83,7 +93,9 @@ def main(argv=None):
     sp = p.add_subparsers(dest="cmd", required=True)
     sp.add_parser("snapshot"); w = sp.add_parser("watch"); w.add_argument("--interval", type=float, default=1.0)
     w.add_argument("--count", type=int, default=0)
-    sp.add_parser("inversions")
+    iv = sp.add_parser("inversions"); iv.add_argument("--explain", action="store_true", help="human-readable AI root cause")
+    iv.add_argument("--trace", action="store_true", help="add a 1 s tracelogger timeline to the AI evidence")
+    iv.add_argument("--no-ai", action="store_true", help="skip the explanation field")
     ec = sp.add_parser("explain-crash"); ec.add_argument("binary", nargs="?", default=None,
         help="local QNX binary to deploy+run (or remote path with --remote)")
     ec.add_argument("--remote", action="store_true"); ec.add_argument("--json", action="store_true")
@@ -97,6 +109,12 @@ def main(argv=None):
     ci.add_argument("--background", action="append", help="'local_binary [args]' started (as root) during the inversion scan; default arg = seconds+2")
     ci.add_argument("--seconds", type=float, default=3); ci.add_argument("--interval", type=float, default=0.5)
     ci.add_argument("--report", help="write JSON report here")
+    ci.add_argument("--fix", metavar="SOURCE", help="on inversion, ask the AI for a QNX fix to SOURCE and write a unified diff")
+    ci.add_argument("--fix-out", default="qnxray-fix.patch", help="where --fix writes the patch (default qnxray-fix.patch)")
+    fx = sp.add_parser("fix", help="AI-proposed QNX fix for a live inversion: patch, qcc rebuild, verify on target")
+    fx.add_argument("source"); fx.add_argument("--args", default="3", help="program args for the latency run")
+    fx.add_argument("--verify", action="store_true", help="rebuild, rerun on the target and compare latency")
+    fx.add_argument("--patch-out", default=None); fx.add_argument("--json", action="store_true")
     b = sp.add_parser("build"); b.add_argument("source")
     a = p.parse_args(argv)
     if a.cmd == "build":
@@ -110,7 +128,25 @@ def main(argv=None):
             snap = t.snapshot(); d = snap.to_dict(); d["inversions"] = priority_inversions(snap)
             print(json.dumps(d), flush=True); n += 1; time.sleep(a.interval)
     elif a.cmd == "inversions":
-        print(json.dumps(priority_inversions(t.snapshot()), indent=2))
+        snap = t.snapshot(); invs = priority_inversions(snap)
+        tl = None
+        if invs and a.trace and a.target != "mock":
+            try: tl = timeline_from_kev(t.capture_trace(1), os.path.basename(invs[0]["owner"]))
+            except (Exception, SystemExit): tl = None
+        for i in invs:
+            if not a.no_ai: i["explanation"] = analyze(i, snapshot=snap.to_dict(), timeline=tl)
+        if a.explain:
+            for i in invs: print(f"INVERSION {i['waiter']} (prio {i['prio']}) -> {i['owner']}[{i['owner_pid']}] @{i['owner_max_prio']}, "
+                                 f"preempted by {', '.join(i['preempted_by'])}\n" + format_text(i["explanation"]))
+            if not invs: print("no priority inversion")
+        else:
+            print(json.dumps(invs, indent=2))
+    elif a.cmd == "fix":
+        sdp_env_check()
+        from . import fix as fixmod
+        r = fixmod.run(t, a.source, a.args, verify=a.verify, patch_out=a.patch_out, log=(lambda *x: None) if a.json else print)
+        if a.json: print(json.dumps(r, indent=2))
+        return 0 if r.get("status") in ("verified", "patch-proposed") else 1
     elif a.cmd == "timeline":
         if a.target == "mock" and not a.kev: sys.exit("timeline needs a live target or --kev")
         cmd_timeline(a, t)
@@ -122,12 +158,13 @@ def main(argv=None):
             rep = t.run_and_capture(rb)
         else:
             rep = t.crash_report() if hasattr(t, "crash_report") else {}
-        if a.json:
-            print(json.dumps(rep, indent=2))
         if rep.get("crashed") is False:
             print(f"{rep['binary']} exited normally (code {rep['exit_code']}).")
         else:
-            print(explain(rep))
+            rep["explanation"] = analyze(rep)
+            print(json.dumps(rep, indent=2) if a.json else
+                  f"CRASH {rep.get('binary')}: {rep.get('signal')} ({rep.get('signal_desc')}) at {(rep.get('backtrace') or ['?'])[0]}\n"
+                  + format_text(rep["explanation"]))
 
 if __name__ == "__main__":
     sys.exit(main())

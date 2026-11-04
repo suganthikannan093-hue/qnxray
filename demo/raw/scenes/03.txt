@@ -1,3 +1,6 @@
-$ ssh qnxvm 'pidin | grep -E pid
-bash: -c: line 1: unexpected EOF while looking for matching `''
-[exit 2, 0.0 s]
+$ ssh qnxvm 'sudo -n pidin | grep -e STATE -e inversion'
+     pid tid name                         prio STATE          Blocked                     
+29188112   1 tmp/inversion                 10f READY                                      
+29192211   1 tmp/inversion                 20f RUNNING                                    
+29192215   1 tmp/inversion                 30f REPLY          29188112                    
+[exit 0, 0.7 s]

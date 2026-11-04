@@ -34,6 +34,21 @@ export function activate(ctx: vscode.ExtensionContext) {
         `QNXray CI: ${rep.status} (${rep.crashes.length} crashes, ${rep.inversions.length} inversions)`);
       return rep;
     }),
+    vscode.commands.registerCommand('qnxray.explainInversion', async () => {
+      panel?.webview.postMessage({ kind: 'ai', data: { busy: true } });
+      const invs = JSON.parse(await run(ctx, ['inversions', '--trace']));
+      const x = invs[0]?.explanation ?? { mode: 'offline', text: 'no priority inversion right now' };
+      panel?.webview.postMessage({ kind: 'ai', data: x });
+      return x;
+    }),
+    vscode.commands.registerCommand('qnxray.fixVerify', async (src?: string) => {
+      src ??= vscode.workspace.getConfiguration('qnxray').get<string>('fixSource') || vscode.window.activeTextEditor?.document.fileName;
+      if (!src) { vscode.window.showErrorMessage('QNXray: set qnxray.fixSource to the C file to fix'); return; }
+      panel?.webview.postMessage({ kind: 'fix', data: { busy: true } });
+      const r = JSON.parse(await run(ctx, ['fix', src, '--verify', '--json'], 300000));
+      panel?.webview.postMessage({ kind: 'fix', data: r });
+      return r;
+    }),
     vscode.commands.registerCommand('qnxray.build', async () => {
       const f = vscode.window.activeTextEditor?.document.fileName;
       if (!f) { return; }

@@ -1,6 +1,6 @@
 $ qnxray --target qnxvm timeline --seconds 1 --match inversion
 timeline 0.999s ('#' = on CPU)
-    25387024/1 tmp/inversion          |                                                            | READY=0.999s, CREATE=0.000s
-    25391123/1 tmp/inversion          |########################################################### | RUNNING=0.998s, READY=0.001s, CREATE=0.000s
-    25391127/1 tmp/inversion          |                                                            | REPLY=0.998s, CREATE=0.000s
-[exit 0, 2.2 s]
+    29188112/1 tmp/inversion          |                                                            | READY=0.999s, CREATE=0.000s
+    29192211/1 tmp/inversion          |########################################################### | RUNNING=0.996s, READY=0.003s, CREATE=0.000s
+    29192215/1 tmp/inversion          |                                                            | REPLY=0.999s, CREATE=0.000s
+[exit 0, 2.3 s]

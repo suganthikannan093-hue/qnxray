@@ -1,5 +1,5 @@
-$ ssh qnxvm 'uname -a; pidin info | head -2'
+$ ssh qnxvm 'uname -a; sudo -n pidin info | head -2'
 QNX qnxqemu 8.0.0 2026/06/05-16:26:03EDT x86pc x86_64
-CPU:X86_64 Release:8.0.0  FreeMem:3827MB/4095MB BootTime:Nov 04 17:05:10 UTC 2026
-Processes: 5, Threads: 5
-[exit 0, 0.5 s]
+CPU:X86_64 Release:8.0.0  FreeMem:3834MB/4095MB BootTime:Nov 04 17:05:10 UTC 2026
+Processes: 32, Threads: 162
+[exit 0, 0.6 s]

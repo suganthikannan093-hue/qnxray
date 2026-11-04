@@ -1,0 +1,31 @@
+{
+  "binary": "/tmp/crashy",
+  "exit_code": 255,
+  "stdout": "",
+  "stderr": "",
+  "crashed": true,
+  "core": "~/cores/crashy.core",
+  "signal": "SIGSEGV",
+  "signal_desc": "Segmentation fault",
+  "backtrace": [
+    "read_sensor (s=0x0) at examples/crashy/main.c:5",
+    "main () at examples/crashy/main.c:6"
+  ],
+  "pc": "0x56c546574d",
+  "explanation": {
+    "summary": "The program crashed with SIGSEGV because it dereferenced a NULL sensor pointer in read_sensor().",
+    "root_cause": "The backtrace shows the fault occurs in read_sensor(s=0x0) at main.c:5, where the code reads s->value without checking for NULL. main() explicitly initializes struct sensor *s = NULL and passes it to read_sensor(), so the segmentation fault is deterministic and due to an invalid memory access rather than a QNX runtime issue.",
+    "evidence": [
+      "signal: SIGSEGV / Segmentation fault",
+      "backtrace: \"read_sensor (s=0x0) at examples/crashy/main.c:5\"",
+      "source line 5: \"return s->value;   /* NULL deref */\"",
+      "source line 6: \"struct sensor *s = NULL;\""
+    ],
+    "qnx_fix": "Guard the pointer before dereferencing it, or ensure a valid sensor object is created and passed into read_sensor(); if NULL is a valid state, return an error code instead of crashing.",
+    "patch": "--- a/examples/crashy/main.c\n+++ b/examples/crashy/main.c\n@@\n-static int read_sensor(struct sensor *s) { return s->value; }   /* NULL deref */\n+static int read_sensor(struct sensor *s) { return s ? s->value : -1; }\n",
+    "confidence": "high",
+    "mode": "ai",
+    "model": "gpt-5.4-mini",
+    "text": "[ai:gpt-5.4-mini] The program crashed with SIGSEGV because it dereferenced a NULL sensor pointer in read_sensor(). Fix: Guard the pointer before dereferencing it, or ensure a valid sensor object is created and passed into read_sensor(); if NULL is a valid state, return an error code instead of crashing."
+  }
+}

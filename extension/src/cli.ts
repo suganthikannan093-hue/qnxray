@@ -14,7 +14,10 @@ export function cliDir(ctx: vscode.ExtensionContext) {
   const bundled = path.join(ctx.extensionPath, 'cli');
   return fs.existsSync(path.join(bundled, 'qnxray')) ? bundled : path.join(ctx.extensionPath, '..', 'cli');
 }
-function cliEnv(ctx: vscode.ExtensionContext) { return { ...process.env, PYTHONPATH: cliDir(ctx) }; }
+function cliEnv(ctx: vscode.ExtensionContext) {
+  const m = cfg().get<string>('llmModel', '');
+  return { ...process.env, PYTHONPATH: cliDir(ctx), ...(m ? { QNXRAY_LLM_MODEL: m } : {}) };
+}
 function base(): string[] {
   const src = cfg().get<string>('source', '');
   return ['-m', 'qnxray', '--target', cfg().get<string>('target', 'mock'), ...(src ? ['--source', src] : [])];

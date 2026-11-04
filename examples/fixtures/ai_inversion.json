@@ -1,0 +1,33 @@
+[
+  {
+    "waiter": "/tmp/inversion[27693079]/1",
+    "prio": 30,
+    "state": "REPLY",
+    "owner": "/tmp/inversion",
+    "owner_pid": 27688976,
+    "owner_max_prio": 10,
+    "owner_states": [
+      "READY"
+    ],
+    "preempted_by": [
+      "/tmp/inversion[27693075]/1@20"
+    ],
+    "severity": "high",
+    "explanation": {
+      "summary": "A high-priority client is stuck in REPLY waiting on a lower-priority server thread that is only READY, and that server is being preempted by a medium-priority thread, creating classic priority inversion on QNX.",
+      "root_cause": "The server handling the message from /tmp/inversion[27693079]/1 at priority 10 is not receiving effective priority inheritance from the client at priority 30, so it remains READY instead of running to complete the MsgReply. Because a priority-20 thread is running on the same CPU, the low-priority server cannot preempt it, leaving the priority-30 client blocked in REPLY and causing the inversion.",
+      "evidence": [
+        "waiter /tmp/inversion[27693079]/1 is in REPLY at prio 30",
+        "blocker /tmp/inversion[27688976] has max prio 10 and is only READY",
+        "preempted_by /tmp/inversion[27693075]/1@20 is RUNNING on cpu 0",
+        "all threads are SCHED_FIFO-style fixed prio values: 10f, 20f, 30f"
+      ],
+      "qnx_fix": "Enable priority inheritance for the server path: avoid _NTO_CHF_FIXED_PRIORITY on the channel used for the IPC server, or if mutexes guard the reply path, use PTHREAD_PRIO_INHERIT (or PRIO_PROTECT with an appropriate ceiling) so the server inherits the client\u2019s priority and can run to MsgReply. Ensure the server thread can temporarily run at least at priority 30 while servicing the request.",
+      "patch": "",
+      "confidence": "high",
+      "mode": "ai",
+      "model": "gpt-5.4-mini",
+      "text": "[ai:gpt-5.4-mini] A high-priority client is stuck in REPLY waiting on a lower-priority server thread that is only READY, and that server is being preempted by a medium-priority thread, creating classic priority inversion on QNX. Fix: Enable priority inheritance for the server path: avoid _NTO_CHF_FIXED_PRIORITY on the channel used for the IPC server, or if mutexes guard the reply path, use PTHREAD_PRIO_INHERIT (or PRIO_PROTECT with an appropriate ceiling) so the server inherits the client\u2019s priority and can run to MsgReply. Ensure the server thread can temporarily run at least at priority 30 while servicing the request."
+    }
+  }
+]

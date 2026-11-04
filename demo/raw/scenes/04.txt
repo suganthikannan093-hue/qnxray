@@ -1,19 +1,18 @@
-$ qnxray --target qnxvm inversions
-[
-  {
-    "waiter": "/tmp/inversion[25391127]/1",
-    "prio": 30,
-    "state": "REPLY",
-    "owner": "/tmp/inversion",
-    "owner_pid": 25387024,
-    "owner_max_prio": 10,
-    "owner_states": [
-      "READY"
-    ],
-    "preempted_by": [
-      "/tmp/inversion[25391123]/1@20"
-    ],
-    "severity": "high"
-  }
-]
-[exit 0, 0.7 s]
+$ qnxray --target qnxvm inversions --explain --trace
+INVERSION /tmp/inversion[29192215]/1 (prio 30) -> /tmp/inversion[29188112] @10, preempted by /tmp/inversion[29192211]/1@20
+AI root cause (gpt-5.4-mini, confidence high):
+  A high-priority client is stuck in REPLY behind a lower-priority server thread that is not inheriting its priority, while a medium-priority thread preempts the server and extends the inversion.
+
+Why:
+  This is a classic QNX priority inversion on a message-passing path: the waiter at priority 30 is blocked in REPLY on /tmp/inversion[29188112], whose highest observed priority is only 10 and remains READY instead of running to complete MsgReply(). A third thread at priority 20 is RUNNING and preempting the server, which indicates the server is not receiving client-driven priority inheritance; this commonly happens when the channel is created with _NTO_CHF_FIXED_PRIORITY or when the server/mutex protection model prevents inheritance from elevating the execution context.
+
+Evidence:
+  - waiter_prio=30, waiter_state=REPLY
+  - blocker=/tmp/inversion[29188112], blocker_max_prio=10
+  - preempted_by=/tmp/inversion[29192211]/1@20
+  - thread 29188112/1 state=READY for 0.99893s
+  - thread 29192215/1 state=REPLY for 0.998894s
+
+QNX fix:
+  Remove fixed-priority behavior from the server channel so QNX can boost the server to the sender's priority during MsgSend/MsgReceive/MsgReply, and if mutexes are involved use PTHREAD_PRIO_INHERIT (or PRIO_PROTECT only with a correct ceiling) on all shared-state locks; ensure the server promptly replies to the client.
+[exit 0, 5.7 s]

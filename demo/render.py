@@ -17,29 +17,32 @@ def scene_txt(*ids):
 # (kind, payload, caption, narration)
 SCENES = [
  ("title", ("A priority-30 thread asked for a 0.5 s reply.", "It waited 3.2 s. Nothing crashed. Nothing logged."),
-  "The problem", "A priority thirty thread asks a server for a half second reply. It waits three point two seconds. Nothing crashed, nothing was logged. On a real-time system, that is a bug you can't see."),
- ("title", ("QNXray", "X-ray vision for QNX 8.0: live threads, priority inversions, traces, crashes"),
-  "QNXray", "This is Q N X ray: a developer tool that finds priority inversions and crashes on a live Q N X eight target, and explains them, in the terminal, in V S Code, and in C I."),
- ("term", scene_txt("01"), "Live target: QNX SDP 8.0 on QEMU x86_64, over SSH",
-  "Everything you'll see is live. This is Q N X eight point oh, running in QEMU, reached over S S H."),
- ("term", scene_txt("02"), "Snapshot via /dev/qnxray — our own QNX resource manager",
-  "Q N X ray ships its own resource manager. It registers slash dev slash Q N X ray, and every read returns a fresh snapshot of every process and thread."),
- ("term", scene_txt("03"), "The bug: server 10 READY, hog 20 RUNNING, client 30 REPLY-blocked",
-  "Here is the bug in raw pidin. The client at priority thirty is reply-blocked on a server at priority ten, and a priority twenty hog owns the CPU."),
- ("term", scene_txt("04"), "Wow: QNXray names the inversion — waiter, owner, and who preempts it",
-  "Q N X ray follows the message passing chain and names it: the waiter, the server it is blocked on, and the exact thread preempting that server."),
- ("term", scene_txt("05"), "tracelogger → traceprinter → per-thread timeline",
-  "Then it proves it with the kernel tracer. One second of tracelogger: the hog runs the whole time, the server is ready but starved, the client waits in reply."),
- ("video", (4.5, 28.5), "VS Code dashboard: live findings, CPU lanes, trace timeline",
-  "The same engine drives a V S Code dashboard. Live findings at the top, what each CPU is running, and the trace timeline, one click away."),
- ("term", scene_txt("06", "07", "08"), "CI gate: exit 2 = inversion, 0 = clean, 1 = crash",
-  "And in C I, it is a gate. Inversion exits two. The fixed build exits zero. A crashing binary exits one, with a JSON report."),
- ("term", scene_txt("09"), "Crash explained: SIGSEGV, NULL deref in read_sensor, file and line",
-  "When something crashes, Q N X ray collects the core and explains it: a null pointer dereference in read sensor, with the file and line."),
- ("term", scene_txt("10", "11"), "The fix: priority inheritance — 3.20 s → 0.50 s",
-  "The fix is one Q N X feature: priority inheritance. Same program, with inherit on. The reply drops from three point two seconds to half a second."),
- ("title", ("QNXray", "resource manager · message-passing analysis · tracelogger · VS Code · CI"),
-  "Built for QNX SDP 8.0", "Q N X ray. See the invisible real-time bugs, before they ship."),
+  "The problem", "A priority thirty thread asks a server for a half second reply. It waits three point two seconds. Nothing crashed, nothing was logged."),
+ ("title", ("QNXray", "Automatic inversion detection · CI gating · AI root cause · verified fixes"),
+  "QNXray for QNX 8.0", "This is Q N X ray. It detects priority inversions automatically on a live Q N X eight target, gates them in C I, explains the root cause with A I, and verifies the fix."),
+ ("term", scene_txt("01", "02"), "Live target: QNX SDP 8.0 on QEMU, snapshots via our /dev/qnxray resource manager",
+  "Everything here is live: Q N X eight on QEMU, over S S H. Our own resource manager, slash dev slash Q N X ray, returns every thread on each read."),
+ ("term", scene_txt("03"), "The bug in raw pidin: server 10 READY, hog 20 RUNNING, client 30 REPLY-blocked",
+  "In raw pidin, the bug is hard to see. The client at thirty is reply-blocked, the server at ten is ready, a hog at twenty owns the CPU."),
+ ("term", scene_txt("04"), "Automatic detection + AI root cause from live evidence (chain, thread states, trace)",
+  "Q N X ray finds the inversion by itself, captures a kernel trace, and sends that evidence to the model. The A I names the root cause, and the Q N X fix: a fixed-priority channel blocks priority inheritance."),
+ ("video", (5, 40), "VS Code dashboard: live finding, AI root cause, trace timeline",
+  "The same engine drives the V S Code dashboard: the live finding, the A I root cause card, and the trace timeline."),
+ ("term", scene_txt("06", "07", "08", "12"), "CI gate: exit 2 = inversion, 0 = clean, 1 = crash; --fix writes the patch",
+  "In C I it's a gate. Inversion exits two, clean exits zero, a crash exits one. With dash dash fix, C I also writes the proposed patch."),
+ ("term", scene_txt("09"), "Crash: core collected on target, AI explains the NULL deref with file, line, patch",
+  "Crashes too. Q N X ray pulls the core from the target, and the A I explains the null dereference in read sensor, with a patch."),
+ ("card", [("Finds priority inversions automatically", "follows the MsgSend / REPLY chain on a live target — no manual trace reading"),
+           ("Fails the CI build on an inversion", "exit codes + JSON report, headless, over SSH"),
+           ("AI root cause from real QNX evidence", "backtrace, source, thread states, tracelogger timeline"),
+           ("Fix & verify on the target", "patch → qcc rebuild → rerun → measured before / after")],
+  "Only QNXray does this", "Here is what only Q N X ray does: automatic inversion detection, a C I gate, A I root cause from real evidence, and a fix verified on the target."),
+ ("term", scene_txt("10"), "qnxray fix --verify: AI patch → qcc rebuild → rerun on target → 3.20 s → 0.50 s",
+  "And the climax. Q N X ray fix, verify. The A I proposes the patch, Q N X ray applies it, rebuilds with Q C C, reruns on the target, and measures: three point two seconds down to half a second. Verified."),
+ ("video", (40, 67), "Fix & verify button in VS Code: the diff and the measured result",
+  "One click in V S Code does the same: the diff, and the measured before and after."),
+ ("title", ("QNXray", "detect · gate · explain · fix & verify — on a live QNX 8.0 target"),
+  "Built for QNX SDP 8.0", "Q N X ray. Find it, gate it, explain it, and prove the fix."),
 ]
 
 _K = None
@@ -64,21 +67,37 @@ def title_frame(a, b, cap, n):
     d.text((W // 2, 540), b, font=font("DejaVuSans.ttf", 46 if len(b) < 60 else 36), fill=RED if "3.2" in b else DIM, anchor="mm")
     caption(img, cap, n); return img
 
+def card_frame(lines, cap, n):
+    img = Image.new("RGB", (W, H), BG); d = ImageDraw.Draw(img)
+    d.text((W // 2, 170), "Only QNXray does this", font=font("DejaVuSans-Bold.ttf", 80), fill=ACC, anchor="mm")
+    for k, (head, sub) in enumerate(lines):
+        y = 330 + k * 150
+        d.text((260, y), "✓", font=font("DejaVuSans-Bold.ttf", 60), fill=GRN, anchor="lm")
+        d.text((350, y - 22), head, font=font("DejaVuSans-Bold.ttf", 46), fill=FG, anchor="lm")
+        d.text((350, y + 30), sub, font=font("DejaVuSans.ttf", 30), fill=DIM, anchor="lm")
+    caption(img, cap, n); return img
+
 def color(line):
     if line.startswith("$"): return ACC
+    if re.match(r"\+(?!\+\+)", line) or "VERIFIED" in line or line.startswith("AI root cause") or line.startswith("[3/5]"): return GRN
+    if re.match(r"-(?!--)", line): return RED
     if re.search(r"exit=2|REPLY|inversion\b.*3\.20|priority inversion|SEGV|NULL|\"severity\"", line): return RED
     if re.search(r"exit=0|OK, server|RUNNING|#{5}", line): return GRN
     if line.startswith("[exit"): return DIM
     return FG
 
 def term_frames(txt, cap, n, dur):
-    lines = txt.splitlines(); wrapped = []
-    longest = max(len(l) for l in lines)
-    size = max(18, min(34, int((W - 160) / (0.602 * max(longest, 60))), int((H - 300) / (1.35 * len(lines)))))
-    mono = font("DejaVuSansMono.ttf", size); maxc = int((W - 160) / (0.602 * size))
-    for l in lines:
-        while len(l) > maxc: wrapped.append(l[:maxc]); l = "  " + l[maxc:]
-        wrapped.append(l)
+    import textwrap
+    lines = txt.splitlines()
+    for size in range(34, 13, -1):   # largest mono size whose word-wrapped text fits the terminal box
+        maxc = int((W - 160) / (0.602 * size)); wrapped = []; colors = []
+        for l in lines:
+            ind = len(l) - len(l.lstrip())
+            parts = (textwrap.wrap(l, maxc, subsequent_indent=" " * (ind + 2)) or [""]) if len(l) > maxc else [l]
+            c = FG if len(l) > 110 and not l.startswith(("[5/5]", "$")) else color(l)   # AI prose stays neutral
+            wrapped += parts; colors += [c] * len(parts)
+        if int(size * 1.35) * len(wrapped) <= H - 290: break
+    mono = font("DejaVuSansMono.ttf", size)
     lh = int(size * 1.35); top = max(110, (H - 110 - lh * len(wrapped)) // 2 - 20)
     cmds = [i for i, l in enumerate(wrapped) if l.startswith("$")]
     # timeline: each command types for 0.8 s, then its output appears; spread commands over the first 60% of dur
@@ -94,7 +113,7 @@ def term_frames(txt, cap, n, dur):
             d.text((80, top + ci * lh), c[:max(2, int(len(c) * frac))], font=mono, fill=ACC)
             if frac >= 1:
                 for j in range(ci + 1, end):
-                    d.text((80, top + j * lh), wrapped[j], font=mono, fill=color(wrapped[j]))
+                    d.text((80, top + j * lh), wrapped[j], font=mono, fill=colors[j])
         caption(img, cap, n); return img
     prev = None
     for f in range(total):
@@ -120,9 +139,12 @@ def encode(i, frames=None, still=None, dur=0, audio=None, video=None):
 
 parts, script = [], []
 for i, (kind, payload, cap, narr) in enumerate(SCENES):
-    wav, sec = tts(i, narr); dur = round(sec + 2.5, 2)
-    if kind == "video": dur = max(dur, 24)
-    if kind == "title": img = title_frame(*payload, cap, i + 1).tobytes(); frames = (img for _ in range(int(dur * FPS)))
+    wav, sec = tts(i, narr); dur = round(sec + 2.5 + (4 if kind == "term" and "AI" in cap else 0), 2)
+    if kind == "video": dur = max(dur, 14)
+    if kind == "card": dur = max(dur, 10)
+    if kind in ("title", "card"):
+        img = (title_frame(*payload, cap, i + 1) if kind == "title" else card_frame(payload, cap, i + 1)).tobytes()
+        frames = (img for _ in range(int(dur * FPS)))
     elif kind == "term": frames = term_frames(payload, cap, i + 1, dur)
     parts.append(encode(i, frames if kind != "video" else None, dur=dur, audio=wav, video=f"{RAW}/vscode.mp4" if kind == "video" else None) if kind == "video"
                  else encode(i, frames, dur=dur, audio=wav))

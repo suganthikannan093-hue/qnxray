@@ -22,10 +22,20 @@ export async function run() {
     for (let i = 0; i < 20 && !(api.state.last.inversions || []).length; i++) { await sleep(1000); }
     assert.ok(api.state.last.inversions.length > 0, 'expected a live priority inversion');
     console.log('[qnxray-test] inversion:', JSON.stringify(api.state.last.inversions[0]));
+    const x: any = await vscode.commands.executeCommand('qnxray.explainInversion');
+    console.log('[qnxray-test] ai:', x.mode, x.model || '', (x.summary || x.text || '').slice(0, 120));
+    if (hold) { console.log('[qnxray-demo] ai-shown'); await sleep(hold * 1000); }
   }
   if (target !== 'mock') {
     const tl: any = await vscode.commands.executeCommand('qnxray.timeline', 'inversion');
     if (hold) { console.log('[qnxray-demo] timeline-shown'); await sleep(hold * 1000); }
     console.log(`[qnxray-test] timeline ${tl.duration_s}s threads=${Object.keys(tl.threads).length}`);
+  }
+  if (process.env.QNXRAY_FIX_SOURCE) {
+    console.log('[qnxray-demo] fix-start');
+    const r: any = await vscode.commands.executeCommand('qnxray.fixVerify', process.env.QNXRAY_FIX_SOURCE);
+    console.log(`[qnxray-test] fix ${r.status} ${r.before_s}s -> ${r.after_s}s (${r.fix?.mode})`);
+    assert.strictEqual(r.status, 'verified');
+    if (hold) { console.log('[qnxray-demo] fix-shown'); await sleep(hold * 1000); }
   }
 }

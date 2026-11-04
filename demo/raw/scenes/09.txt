@@ -1,3 +1,28 @@
 $ qnxray --target qnxvm explain-crash build/crashy
-[offline] Invalid memory access. On QNX, SEGV_MAPERR at 0x0 usually means a NULL pointer dereference. Top frame: read_sensor (s=0x0) at /workspace/qnxray/examples/crashy/main.c:5
-[exit 0, 5.1 s]
+CRASH /tmp/crashy: SIGSEGV (Segmentation fault) at read_sensor (s=0x0) at examples/crashy/main.c:5
+AI root cause (gpt-5.4-mini, confidence high):
+  The process crashed with SIGSEGV because it dereferenced a NULL sensor pointer in read_sensor().
+
+Why:
+  The backtrace shows the fault occurs in read_sensor(s=0x0) at examples/crashy/main.c:5, where the code returns s->value without checking for NULL. In QNX terms this is a straight invalid memory access leading to a SEGV_MAPERR-style crash and core dump, not a scheduling or message-passing issue.
+
+Evidence:
+  - backtrace: "read_sensor (s=0x0) at examples/crashy/main.c:5"
+  - fault_line: 5 -> "return s->value;   /* NULL deref */"
+  - main line 6 sets "struct sensor *s = NULL;"
+  - signal: "SIGSEGV" / "Segmentation fault"
+  - core: "~/cores/crashy.core"
+
+QNX fix:
+  Add a NULL check before dereferencing the pointer, or ensure the caller passes a valid sensor object; optionally fail fast with an error return instead of crashing.
+
+Patch:
+  --- a/examples/crashy/main.c
+  +++ b/examples/crashy/main.c
+  @@
+  -static int read_sensor(struct sensor *s) { return s->value; }   /* NULL deref */
+  +static int read_sensor(struct sensor *s) {
+  +    if (s == NULL) return -1;
+  +    return s->value;
+  +}
+[exit 0, 7.7 s]

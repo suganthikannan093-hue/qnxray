@@ -1,0 +1,42 @@
+{
+  "source": "examples/inversion/main.c",
+  "args": "3",
+  "inversion": {
+    "waiter": "tmp/inversion_before[39460887]/1",
+    "prio": 30,
+    "state": "REPLY",
+    "owner": "tmp/inversion_before",
+    "owner_pid": 39456784,
+    "owner_max_prio": 10,
+    "owner_states": [
+      "READY"
+    ],
+    "preempted_by": [
+      "tmp/inversion_before[39460883]/1@20"
+    ],
+    "severity": "high"
+  },
+  "fix": {
+    "qnx_fix": "Remove the fixed-priority channel mode so the server channel uses QNX's default client-priority inheritance in all runs. This is the smallest correct fix: the server will inherit the blocked client's priority while handling MsgReceive/MsgReply, eliminating the inversion without changing timing, workload, or command-line behavior.",
+    "rationale": "The live trace shows a prio-30 client REPLY-blocked behind a prio-10 server that is being preempted by a prio-20 CPU hog. In QNX Neutrino, _NTO_CHF_FIXED_PRIORITY disables the channel's normal client-driven priority inheritance, which is exactly what allows the inversion. The program already has an optional --inherit path, but the requirement is that no flag combination should ever leave fixed-priority reachable. Therefore the smallest safe fix is to create the channel unconditionally with flags 0 so the server inherits the client's priority in every mode.",
+    "edits": [
+      {
+        "find": "    /* The bug: _NTO_CHF_FIXED_PRIORITY turns off QNX's client-driven priority inheritance. */\n    int chid = ChannelCreate(inherit ? 0 : _NTO_CHF_FIXED_PRIORITY);",
+        "replace": "    /* Use QNX's default client-driven priority inheritance for this server channel. */\n    int chid = ChannelCreate(0);"
+      },
+      {
+        "find": " * Usage (as root): inversion [seconds=20] [--inherit]\n *   --inherit: create the channel without _NTO_CHF_FIXED_PRIORITY (the fix).\n * Fix: drop _NTO_CHF_FIXED_PRIORITY (QNX's default priority inheritance) and the inversion goes away.\n */",
+        "replace": " * Usage (as root): inversion [seconds=20]\n * Fix: use QNX's default priority inheritance on the server channel so the inversion goes away.\n */"
+      }
+    ],
+    "mode": "ai",
+    "model": "gpt-5.4-mini"
+  },
+  "patch": "--- a/examples/inversion/main.c\n+++ b/examples/inversion/main.c\n@@ -6,9 +6,8 @@\n  *   hog     prio 20 (FIFO) - CPU-bound medium-priority work that starves the server\n  *   client  prio 30 (FIFO) - MsgSend()s to the server and stays REPLY-blocked on a prio-10 server\n  * => the prio-30 client is effectively running at prio 10 and loses to the prio-20 hog.\n- * Usage (as root): inversion [seconds=20] [--inherit]\n- *   --inherit: create the channel without _NTO_CHF_FIXED_PRIORITY (the fix).\n- * Fix: drop _NTO_CHF_FIXED_PRIORITY (QNX's default priority inheritance) and the inversion goes away.\n+ * Usage (as root): inversion [seconds=20]\n+ * Fix: use QNX's default priority inheritance on the server channel so the inversion goes away.\n  */\n #include <errno.h>\n #include <sched.h>\n@@ -33,8 +32,8 @@\n int main(int argc, char **argv) {\n     int secs = argc > 1 ? atoi(argv[1]) : 20;\n     int inherit = argc > 2 && strcmp(argv[2], \"--inherit\") == 0;\n-    /* The bug: _NTO_CHF_FIXED_PRIORITY turns off QNX's client-driven priority inheritance. */\n-    int chid = ChannelCreate(inherit ? 0 : _NTO_CHF_FIXED_PRIORITY);\n+    /* Use QNX's default client-driven priority inheritance for this server channel. */\n+    int chid = ChannelCreate(0);\n     pid_t server = getpid();\n     pid_t hog = fork();\n     if (hog == 0) {                      /* medium: wait for the server to be busy, then hog CPU 0 */\n",
+  "before_s": 3.2,
+  "after_s": 0.5,
+  "before_out": "inversion demo: server=39612445 hog=39616542 client=39616543 (pidin -p 39616543)\nclient(prio 30): reply after 3.20s (expected 0.5s) -> priority inversion",
+  "after_out": "inversion demo: server=39665693 hog=39669790 client=39669791 (pidin -p 39669791)\nclient(prio 30): reply after 0.50s (expected 0.5s) -> OK, server inherited prio 30",
+  "inversion_after": false,
+  "status": "verified"
+}

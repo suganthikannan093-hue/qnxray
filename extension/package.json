@@ -35,6 +35,14 @@
       {
         "command": "qnxray.ci",
         "title": "QNXray: Run CI Gate"
+      },
+      {
+        "command": "qnxray.explainInversion",
+        "title": "QNXray: AI explain priority inversion"
+      },
+      {
+        "command": "qnxray.fixVerify",
+        "title": "QNXray: Fix & verify priority inversion (AI patch, qcc rebuild, rerun)"
       }
     ],
     "configuration": {
@@ -63,6 +71,16 @@
           ],
           "default": "",
           "description": "Snapshot source on an SSH target: pidin (default), agent (/tmp/qnxray-agent) or resmgr (/dev/qnxray resource manager)."
+        },
+        "qnxray.fixSource": {
+          "type": "string",
+          "default": "",
+          "description": "C source that `Fix & verify` patches (default: active editor)."
+        },
+        "qnxray.llmModel": {
+          "type": "string",
+          "default": "",
+          "description": "Override the AI model (QNXRAY_LLM_MODEL). The key is read from QNXRAY_LLM_KEY or OPENAI_API_KEY in the environment, never from settings."
         }
       }
     }

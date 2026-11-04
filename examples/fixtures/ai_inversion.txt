@@ -1,0 +1,16 @@
+INVERSION /tmp/inversion[27693079]/1 (prio 30) -> /tmp/inversion[27688976] @10, preempted by /tmp/inversion[27693075]/1@20
+AI root cause (gpt-5.4-mini, confidence high):
+  A high-priority client is stuck in REPLY while the lower-priority server thread remains READY and is being preempted by a medium-priority thread, indicating classic priority inversion in QNX message passing.
+
+Why:
+  The server at priority 10 is not receiving priority inheritance/boost sufficient to run and issue MsgReply() to the priority-30 client, while a priority-20 thread keeps the CPU. This is consistent with a server channel created with _NTO_CHF_FIXED_PRIORITY or a mutex/synchronization path that prevents client-driven priority inheritance, allowing a medium-priority thread to starve the reply path.
+
+Evidence:
+  - waiter /tmp/inversion[27693079]/1 in REPLY at prio 30
+  - blocker /tmp/inversion[27688976] has max prio 10 and is READY
+  - preempted_by /tmp/inversion[27693075]/1@20
+  - timeline: 27693079/1 spent 0.996727 s in REPLY
+  - timeline: 27693075/1 spent 0.997011 s RUNNING
+
+QNX fix:
+  Ensure the server channel is created without _NTO_CHF_FIXED_PRIORITY so client priority inheritance can boost the server to the waiting client's priority; if mutexes protect the reply path, use PTHREAD_PRIO_INHERIT (or redesign to avoid priority-protect ceilings that block the boost).

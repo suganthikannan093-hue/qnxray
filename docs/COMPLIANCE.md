@@ -31,3 +31,9 @@ Legend: **Met** = satisfied in this repo now. **Gap** = still to do (owner liste
 2. Upload `demo/qnxray_demo.mp4` to YouTube (public) and paste the link.
 3. Paste `docs/SUBMISSION.md` into Devpost, choose Developer Tooling & Host Tools, add the codelab URL.
 4. Self-attest eligibility and no Sponsor support.
+
+## AI explainer data handling
+- Optional; enabled only when `QNXRAY_LLM_KEY` / `OPENAI_API_KEY` is set in the environment (`QNXRAY_LLM=off` disables it). The key is never written to files, settings, logs or the repo.
+- Sends only structured debugging evidence (signal, backtrace, a few source lines, thread states/priorities, inversion chain, trace timeline) to the configured OpenAI-compatible endpoint (`QNXRAY_LLM_URL`, model `QNXRAY_LLM_MODEL`, default `gpt-5.4-mini`); key/token-like strings are redacted first.
+- Replies are JSON-schema checked; patches are applied only to a copy under `build/fix/` after exact-match and lint checks. Offline rules are used when the key is absent or the reply is invalid.
+- Fixtures in `examples/fixtures/ai_*` are real captured replies from the demo programs (no personal data, no secrets).

@@ -1,3 +1,20 @@
-$ ssh qnxvm 'sudo -n /tmp/inversion 3 | grep reply'
-client(prio 30): reply after 3.20s (expected 0.5s) -> priority inversion
-[exit 0, 3.9 s]
+$ qnxray --target qnxvm fix examples/inversion/main.c --verify
+[1/5] built build/fix/inversion_before with qcc -Vgcc_ntox86_64, deployed to /tmp/inversion_before
+[2/5] inversion: tmp/inversion_before[39952407]/1 prio 30 REPLY-blocked on tmp/inversion_before[39948304] @10, preempted by tmp/inversion_before[39952403]/1@20
+[3/5] AI (gpt-5.4-mini) fix: Remove the fixed-priority channel mode unconditionally so the server channel uses QNX's default client-priority inheritance in every run. Keep the CLI and workload unchanged; simply ignore the --inherit flag as a behavior switch and always create the channel without _NTO_CHF_FIXED_PRIORITY, which eliminates the inversion in all modes/flag combinations.
+--- a/examples/inversion/main.c
++++ b/examples/inversion/main.c
+@@ -33,8 +33,8 @@
+ int main(int argc, char **argv) {
+     int secs = argc > 1 ? atoi(argv[1]) : 20;
+     int inherit = argc > 2 && strcmp(argv[2], "--inherit") == 0;
+-    /* The bug: _NTO_CHF_FIXED_PRIORITY turns off QNX's client-driven priority inheritance. */
+-    int chid = ChannelCreate(inherit ? 0 : _NTO_CHF_FIXED_PRIORITY);
++    /* QNX default: inherit the highest waiting client priority. */
++    int chid = ChannelCreate(0);
+     pid_t server = getpid();
+     pid_t hog = fork();
+     if (hog == 0) {                      /* medium: wait for the server to be busy, then hog CPU 0 */
+[4/5] rebuilt patched source with qcc -> /tmp/inversion_fixed
+[5/5] verify on target: client reply 3.20s -> 0.50s; inversion after fix: none => VERIFIED
+[exit 0, 19.2 s]
