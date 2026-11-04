@@ -35,7 +35,7 @@ function render(){
   document.getElementById('find').innerHTML = inv.length ? inv.map(i=>'<div class="finding '+i.severity+'"><b>Priority inversion</b> ('+i.severity+'): '+esc(i.waiter)+' prio '+i.prio+' is '+i.state+'-blocked on '+esc(i.owner)+'['+i.owner_pid+'] running at prio '+i.owner_max_prio+(i.preempted_by.length?' — preempted by '+esc(i.preempted_by.join(', ')):'')+' <button onclick="cmd(&quot;qnxray.explainInversion&quot;)">AI explain</button> <button onclick="cmd(&quot;qnxray.fixVerify&quot;)">Fix &amp; verify</button></div>').join('') : '<div class="ok">No priority inversions</div>';
   const cpus={}; snap.processes.forEach(p=>p.threads.forEach(t=>{ if(t.state==='RUNNING'&&t.cpu!=null)(cpus[t.cpu]=cpus[t.cpu]||[]).push(p.name.split('/').pop()+'/'+t.tid+' @'+t.priority); }));
   const ncpu=Math.max(4,...Object.keys(cpus).map(Number).map(x=>x+1));
-  document.getElementById('cpus').innerHTML=[...Array(ncpu).keys()].map(c=>'<div class="cpu"><b>CPU '+c+'</b><br>'+esc((cpus[c]||['idle / n.a.']).join('<br>'))+'</div>').join('');
+  document.getElementById('cpus').innerHTML=[...Array(ncpu).keys()].map(c=>'<div class="cpu"><b>CPU '+c+'</b><br>'+(cpus[c]||['idle / n.a.']).map(esc).join('<br>')+'</div>').join('');
   const rows=snap.processes.filter(p=>!f||p.name.toLowerCase().includes(f)).flatMap(p=>p.threads.map(t=>'<tr><td>'+p.pid+'</td><td>'+esc(p.name)+'</td><td>'+t.tid+'</td><td>'+t.priority+t.policy+'</td><td class="'+t.state+'">'+t.state+'</td><td>'+esc(t.blocked_on)+'</td><td>'+(t.cpu??'')+'</td></tr>'));
   document.getElementById('cnt').textContent=rows.length+' threads'; document.getElementById('t').innerHTML=rows.join('');
 }

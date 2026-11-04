@@ -1,6 +1,7 @@
 import argparse, json, os, shutil, subprocess, sys, time
 from .mock import MockTarget
 from .analyze import priority_inversions
+from .fix import diff_path
 from .explain import explain, analyze, format_text, inversion_evidence, propose_fix
 
 def get_target(a):
@@ -17,7 +18,7 @@ def cmd_build(a):
     sdp_env_check()
     out = os.path.splitext(a.source)[0] if os.path.isfile(a.source) else os.path.join(a.source, os.path.basename(a.source.rstrip("/")))
     src = a.source if os.path.isfile(a.source) else os.path.join(a.source, "main.c")
-    subprocess.run(["qcc", "-Vgcc_ntox86_64", "-g", "-o", out, src], check=True)
+    subprocess.run(["qcc", "-V" + os.environ.get("QNXRAY_QCC_VARIANT", "gcc_ntox86_64"), "-g", "-o", out, src], check=True)
     print(out)
 
 def timeline_from_kev(kev, match=None):
@@ -70,7 +71,7 @@ def cmd_ci(a, t):
                     src = open(a.fix).read(); ev = inversion_evidence(i, sd); ev["source"] = {"file": a.fix}
                     fx = propose_fix(ev, src); new = src
                     for e in fx["edits"]: new = new.replace(e["find"], e["replace"], 1)
-                    diff = "".join(difflib.unified_diff(src.splitlines(True), new.splitlines(True), f"a/{a.fix}", f"b/{a.fix}"))
+                    diff = "".join(difflib.unified_diff(src.splitlines(True), new.splitlines(True), "a/" + diff_path(a.fix), "b/" + diff_path(a.fix)))
                     rep["fix"] = dict(fx, patch=diff, patch_file=a.fix_out)
                     open(a.fix_out, "w").write(diff)
         if time.time() >= end: break

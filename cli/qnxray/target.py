@@ -49,7 +49,7 @@ class SshTarget:
                 s.processes.append(Process(pid=p["pid"], name=p["name"],
                                            threads=[Thread(**t) for t in p["threads"]]))
             return s
-        return parse(self._ssh("pidin", root=True).stdout)
+        return parse(self._ssh("pidin -F '%a %b %N %p %J %B'", root=True).stdout)
 
     def deploy(self, local, remote="/tmp/"):
         subprocess.run(self._base("scp") + ["-q", local, f"{self.dest}:{remote}"], check=True)

@@ -8,7 +8,7 @@ LAT = re.compile(r"reply after ([\d.]+)s")
 
 def qcc(src, out):
     exe = shutil.which("qcc") or os.path.join(os.environ.get("QNX_HOST", ""), "usr", "bin", "qcc")
-    subprocess.run([exe, "-Vgcc_ntox86_64", "-g", "-o", out, src], check=True)
+    subprocess.run([exe, "-V" + os.environ.get("QNXRAY_QCC_VARIANT", "gcc_ntox86_64"), "-g", "-o", out, src], check=True)
 
 def measure(t, remote_bin, args):
     r = t._ssh(f"sudo -n {remote_bin} {args}", check=False, timeout=120)
@@ -23,13 +23,23 @@ def scan(t, remote_bin, args, seconds=2.0):
     t._ssh(f"sudo -n slay -f {os.path.basename(remote_bin)}", check=False); time.sleep(0.5)
     return found
 
+def diff_path(source):
+    """Path for a/ b/ diff headers: relative to the enclosing git repo (or cwd), never absolute."""
+    src = os.path.abspath(source); d = os.path.dirname(src)
+    while d != os.path.dirname(d):
+        if os.path.exists(os.path.join(d, ".git")): return os.path.relpath(src, d)
+        d = os.path.dirname(d)
+    r = os.path.relpath(src)
+    return os.path.basename(src) if r.startswith("..") else r
+
+
 def run(t, source, args="3", verify=True, out_dir="build/fix", patch_out=None, log=print):
     os.makedirs(out_dir, exist_ok=True)
     name = os.path.basename(os.path.dirname(os.path.abspath(source))) or "app"
     before_bin = os.path.join(out_dir, f"{name}_before"); after_bin = os.path.join(out_dir, f"{name}_fixed")
     res = {"source": source, "args": args}
     qcc(source, before_bin); rb = t.deploy(before_bin)
-    log(f"[1/5] built {before_bin} with qcc -Vgcc_ntox86_64, deployed to {rb}")
+    log(f"[1/5] built {before_bin} with qcc -V{os.environ.get('QNXRAY_QCC_VARIANT', 'gcc_ntox86_64')}, deployed to {rb}")
     found = scan(t, rb, "8")
     if not found:
         res.update(status="no-inversion"); log("no priority inversion detected"); return res
@@ -42,7 +52,7 @@ def run(t, source, args="3", verify=True, out_dir="build/fix", patch_out=None, l
     log(f"[3/5] {'AI (' + fx['model'] + ')' if fx['mode'] == 'ai' else 'offline rule'} fix: {fx['qnx_fix']}")
     new = src
     for e in fx["edits"]: new = new.replace(e["find"], e["replace"], 1)
-    rel = os.path.relpath(source) if not os.path.relpath(source).startswith("..") else source
+    rel = diff_path(source)
     diff = "".join(difflib.unified_diff(src.splitlines(True), new.splitlines(True), f"a/{rel}", f"b/{rel}"))
     res["patch"] = diff
     if patch_out: open(patch_out, "w").write(diff)
