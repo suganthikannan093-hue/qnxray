@@ -1,0 +1,29 @@
+{
+  "name": "qnxray",
+  "displayName": "QNXray",
+  "description": "Live QNX 8.0 scheduling X-ray, priority-inversion detector and AI crash explainer",
+  "version": "0.1.0",
+  "publisher": "suganthi",
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Debuggers", "Visualization"],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "qnxray.openDashboard", "title": "QNXray: Open Scheduling Dashboard" },
+      { "command": "qnxray.explainCrash", "title": "QNXray: Explain Last Crash" },
+      { "command": "qnxray.build", "title": "QNXray: Build Current File for QNX" }
+    ],
+    "configuration": {
+      "title": "QNXray",
+      "properties": {
+        "qnxray.target": { "type": "string", "default": "mock", "description": "'mock' or the QNX target IP (see mkqnximage --getip)" },
+        "qnxray.python": { "type": "string", "default": "python3" },
+        "qnxray.interval": { "type": "number", "default": 1 }
+      }
+    }
+  },
+  "scripts": { "compile": "tsc -p .", "watch": "tsc -watch -p ." },
+  "devDependencies": { "@types/node": "^20.0.0", "@types/vscode": "^1.85.0", "typescript": "^5.4.0" }
+}

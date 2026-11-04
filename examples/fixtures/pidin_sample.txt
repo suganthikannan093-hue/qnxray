@@ -1,0 +1,7 @@
+     pid tid name               prio STATE       Blocked
+       1   1 procnto-smp-instr   0f READY
+       1   2 procnto-smp-instr 255f RUNNING
+    4100   1 proc/boot/devc-pty  10r RECEIVE     1
+   20500   1 ./sensor_fusion     40f RUNNING
+           2                     40f MUTEX       20501
+   20501   1 ./logger_lowprio     8r READY

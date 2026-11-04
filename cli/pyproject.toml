@@ -1,0 +1,11 @@
+[project]
+name = "qnxray"
+version = "0.1.0"
+description = "Build, deploy and inspect QNX 8.0 targets from the host"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+[project.scripts]
+qnxray = "qnxray.cli:main"
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"

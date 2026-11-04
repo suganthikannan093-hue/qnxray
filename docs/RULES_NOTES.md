@@ -1,0 +1,13 @@
+# QNX Global Hackathon - rule notes (read 2026-11-04 from https://qnx.devpost.com/rules)
+- Submission period: 2 Nov 2026 11:00 ET - **15 Dec 2026 2:00 PM ET = 16 Dec 2026 12:30 AM IST**.
+- Judging 15-29 Jan 2027; winners ~4 Feb 2027.
+- Category chosen: **Developer Tooling & Host Tools** ("tools that make building for QNX easier, on the host or on the target"). Host-based tool on Win/macOS/Linux that builds/tests/analyzes software targeting QNX 8.0 is explicitly allowed.
+- Required: public GitHub/GitLab/Bitbucket repo with all source + instructions, OSI licence detectable in the About section; repo must show it *genuinely builds for or runs on QNX 8.0* (not just named in README); one category; build/run instructions naming QNX version, target (QEMU) and toolchain; text description; YouTube video <3 min, public, showing it functioning on the device; no unlicensed music/trademarks; English.
+- **Evidence of QNX use**: description must identify the QNX-specific files/functions/output (e.g. QNX APIs, headers, buildfiles, toolchains, system images, or for host tools output specifically for building/analysing/deploying QNX 8.0 software) so reviewers can verify.
+- Codelab bonus ($3,500): URL of a codelab/tutorial authored in the submission period teaching a task on/for QNX 8.0; need not relate to the project.
+- Best Use of QNX-specific Tech ($3,500): message passing, resource managers, microkernel, boot customization, real-time services, security policies.
+- A project can win 1 overall + 1 bonus + 1 community prize.
+- Judging: Stage 1 pass/fail viability; Stage 2 equal weight: Technological Implementation, Design, Potential Impact, Innovation & AI Creativity. Tie-break order = that order.
+- Must be new work created 2 Nov-15 Dec 2026. Judges may evaluate from video/text only.
+- Non-commercial QNX licence (QDL) applies to the SDP used.
+- Live build session: "Developing on QNX 8.0 with VS Code", 10 Nov 2026 11am ET (9:30 PM IST).
