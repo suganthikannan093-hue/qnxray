@@ -69,6 +69,17 @@ class SshTarget:
     def crash_report(self, remote_bin="/tmp/crashy"):
         return self.run_and_capture(remote_bin)
 
+    def capture_trace(self, seconds=1, local_kev=None, during=None):
+        """Run tracelogger on the target (optionally while `during` runs), copy .kev to host."""
+        import tempfile
+        local_kev = local_kev or os.path.join(tempfile.gettempdir(), "qnxray-trace.kev")
+        remote = "/dev/shmem/qnxray.kev"
+        pre = f"(sudo -n {during} >/dev/null 2>&1 &) ; sleep 1.5; " if during else ""
+        self._ssh(pre + f"sudo -n on -p 40r tracelogger -s {int(seconds)} -f {remote} >/dev/null 2>&1; "
+                  f"sudo -n chmod 644 {remote}", timeout=120)
+        subprocess.run(self._base("scp") + ["-q", f"{self.dest}:{remote}", local_kev], check=True)
+        return local_kev
+
     def trace(self, seconds=2, out="/dev/shmem/tracebuffer.kev"):
         # tracelogger -s <sec> time-based mode; requires root
         return self._ssh(f"tracelogger -s {int(seconds)} -f {out} && ls -l {out}", root=True).stdout

@@ -26,6 +26,26 @@ class Real(unittest.TestCase):
         self.assertEqual(r["signal"], "SIGSEGV")
         self.assertTrue(r["backtrace"][0].startswith("read_sensor"))
         self.assertEqual(len(r["backtrace"]), 2)
+class Trace(unittest.TestCase):
+    def test_inversion_timeline(self):
+        from qnxray.trace import parse_traceprinter, build_timeline
+        h, ev, names = parse_traceprinter(open(os.path.join(D, "inversion_traceprinter.txt")).read())
+        self.assertEqual(h["TRACE_CPU_NUM"], "4")
+        pids = {p for p, n in names.items() if "inversion" in n}
+        self.assertEqual(len(pids), 3)
+        tl = build_timeline(h, ev, names, pids)
+        top = {k: max(v["states_s"], key=v["states_s"].get) for k, v in tl["threads"].items()}
+        self.assertEqual(sorted(top.values()), ["READY", "REPLY", "RUNNING"])  # server starved, client stuck, hog runs
+class Inv(unittest.TestCase):
+    def test_preempted_by(self):
+        from qnxray.model import Snapshot, Process, Thread
+        s = Snapshot(0, "t", [Process(1, "srv", [Thread(1, "srv", 10, "f", "READY")]),
+                              Process(2, "hog", [Thread(1, "hog", 20, "f", "RUNNING")]),
+                              Process(3, "cli", [Thread(1, "cli", 30, "f", "REPLY", "1")])])
+        i = priority_inversions(s)[0]
+        self.assertEqual(i["severity"], "high"); self.assertIn("hog", i["preempted_by"][0])
+        from qnxray.explain import offline
+        self.assertIn("Priority inversion", offline(i))
 class T(unittest.TestCase):
     def test_parse(self):
         s = parse(open(FIX).read())

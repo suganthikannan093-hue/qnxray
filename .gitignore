@@ -9,3 +9,9 @@ build/
 build/
 __pycache__/
 *.pyc
+qnxray-trace.kev
+extension/cli/
+extension/out/
+extension/*.vsix
+extension/node_modules/
+extension/.vscode-test/

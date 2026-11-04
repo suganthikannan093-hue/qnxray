@@ -28,3 +28,15 @@ Image: SDP 8.0 QEMU quickstart (x86_64), unpacked at
 
 Crash capture: the image's `dumper -D cores` writes `~/cores/<name>.core`, and the target's own
 `/system/bin/gdb` symbolizes it.
+
+## M3/M4: inversion, timeline, CI, extension
+
+- Demo: `examples/inversion` (build: `python3 -m qnxray build ../examples/inversion`, run as root: `/tmp/inversion [secs]`).
+  Server prio 10 on a `_NTO_CHF_FIXED_PRIORITY` channel (no priority inheritance), hog prio 20, client prio 30 REPLY-blocked; all pinned to CPU0.
+- `qnxray --target qnxvm inversions` reports waiter/owner/preempted_by/severity.
+- `qnxray --target qnxvm timeline --run /tmp/inversion --match inversion [--json]` runs `tracelogger` (at prio 40r so the hog cannot starve it), copies the .kev and parses host `traceprinter` output. Offline: `--kev file.kev`. Set `QNXRAY_TRACEPRINTER` if it is not on PATH.
+- `qnxray --target qnxvm ci [--run BIN]... [--background BIN]... --seconds N --report out.json`: exit 0 clean, 1 crash, 2 inversion, 3 both.
+- AI explanations: set `QNXRAY_LLM_KEY` (optional `QNXRAY_LLM_URL`, `QNXRAY_LLM_MODEL`); otherwise offline rules.
+- Extension: `cd extension && npm install && npm run package` -> `qnxray-0.1.0.vsix` (bundles the CLI).
+  Live integration test: `QNXRAY_TARGET=qnxvm QNXRAY_EXPECT_INVERSION=1 xvfb-run -a node out/test/runTest.js` with the demo running.
+- `scripts/smoke_live.sh qnxvm` covers snapshot, agent, ci inversion, timeline, ci crash, crash capture.

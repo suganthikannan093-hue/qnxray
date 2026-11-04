@@ -1,16 +1,38 @@
 import * as vscode from 'vscode';
 import { watch, run, Snapshot } from './cli';
 import { ChildProcess } from 'child_process';
+import { dashboardHtml } from './dashboard';
 
 let proc: ChildProcess | undefined;
+let panel: vscode.WebviewPanel | undefined;
+const state = { last: undefined as Snapshot | undefined, snapshots: 0, errors: [] as string[] };
 
 export function activate(ctx: vscode.ExtensionContext) {
-  ctx.subscriptions.push(
-    vscode.commands.registerCommand('qnxray.openDashboard', () => openDashboard(ctx)),
-    vscode.commands.registerCommand('qnxray.explainCrash', async () => {
-      const txt = await run(ctx, ['explain-crash']);
+  const out = vscode.window.createOutputChannel('QNXray');
+  ctx.subscriptions.push(out,
+    vscode.commands.registerCommand('qnxray.openDashboard', () => openDashboard(ctx, out)),
+    vscode.commands.registerCommand('qnxray.explainCrash', async (bin?: string) => {
+      if (!bin) {
+        const pick = await vscode.window.showOpenDialog({ title: 'QNX binary to run on the target (cancel = last/mock crash)' });
+        bin = pick?.[0]?.fsPath;
+      }
+      const txt = await run(ctx, ['explain-crash', ...(bin ? [bin] : []), '--json']);
       const doc = await vscode.workspace.openTextDocument({ content: txt, language: 'markdown' });
-      vscode.window.showTextDocument(doc);
+      await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+      return txt;
+    }),
+    vscode.commands.registerCommand('qnxray.timeline', async (match?: string) => {
+      match ??= await vscode.window.showInputBox({ prompt: 'Process name filter (empty = all)' }) || undefined;
+      const tl = JSON.parse(await run(ctx, ['timeline', '--seconds', '1', '--json', ...(match ? ['--match', match] : [])]));
+      panel?.webview.postMessage({ kind: 'timeline', data: tl });
+      return tl;
+    }),
+    vscode.commands.registerCommand('qnxray.ci', async () => {
+      const txt = await run(ctx, ['ci', '--seconds', '3']);
+      const rep = JSON.parse(txt);
+      (rep.exit_code ? vscode.window.showErrorMessage : vscode.window.showInformationMessage)(
+        `QNXray CI: ${rep.status} (${rep.crashes.length} crashes, ${rep.inversions.length} inversions)`);
+      return rep;
     }),
     vscode.commands.registerCommand('qnxray.build', async () => {
       const f = vscode.window.activeTextEditor?.document.fileName;
@@ -18,28 +40,18 @@ export function activate(ctx: vscode.ExtensionContext) {
       try { vscode.window.showInformationMessage('Built ' + (await run(ctx, ['build', f]))); }
       catch (e: any) { vscode.window.showErrorMessage(e.message); }
     }));
+  return { state }; // test/automation API
 }
 
-function openDashboard(ctx: vscode.ExtensionContext) {
-  const panel = vscode.window.createWebviewPanel('qnxray', 'QNXray', vscode.ViewColumn.Two, { enableScripts: true });
-  panel.webview.html = html();
+function openDashboard(ctx: vscode.ExtensionContext, out: vscode.OutputChannel) {
+  panel?.dispose();
+  panel = vscode.window.createWebviewPanel('qnxray', 'QNXray', vscode.ViewColumn.Two, { enableScripts: true, retainContextWhenHidden: true });
+  panel.webview.html = dashboardHtml();
+  panel.webview.onDidReceiveMessage(m => { if (m.cmd) { vscode.commands.executeCommand(m.cmd, ...(m.args || [])); } });
   proc?.kill();
-  proc = watch(ctx, (s: Snapshot) => panel.webview.postMessage(s));
-  panel.onDidDispose(() => proc?.kill());
-}
-
-function html(): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>
-  body{font-family:var(--vscode-font-family);color:var(--vscode-foreground)}
-  table{border-collapse:collapse;width:100%} td,th{padding:2px 6px;text-align:left}
-  .RUNNING{color:#4caf50}.READY{color:#ffc107}.MUTEX,.SEND,.REPLY{color:#f44336}
-  </style></head><body><h2>QNXray <small id="src"></small></h2>
-  <table><thead><tr><th>pid</th><th>process</th><th>tid</th><th>prio</th><th>state</th><th>blocked on</th><th>cpu</th></tr></thead><tbody id="t"></tbody></table>
-  <script>
-  window.addEventListener('message', e => { const s = e.data; document.getElementById('src').textContent = '(' + s.source + ')';
-    document.getElementById('t').innerHTML = s.processes.flatMap(p => p.threads.map(t =>
-      '<tr><td>'+p.pid+'</td><td>'+p.name+'</td><td>'+t.tid+'</td><td>'+t.priority+t.policy+'</td><td class="'+t.state+'">'+t.state+'</td><td>'+(t.blocked_on??'')+'</td><td>'+(t.cpu??'')+'</td></tr>')).join(''); });
-  </script></body></html>`;
+  proc = watch(ctx, s => { state.last = s; state.snapshots++; panel?.webview.postMessage({ kind: 'snapshot', data: s }); },
+    e => { state.errors.push(e); out.append(e); });
+  panel.onDidDispose(() => { proc?.kill(); panel = undefined; });
 }
 
 export function deactivate() { proc?.kill(); }
